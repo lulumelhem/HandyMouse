@@ -31,8 +31,7 @@ while(1):
     # if spacebar pressed capture images of gesture
     if buttonPressed == 32:
 
-        for i in range(1, 11):
-
+        for i in range(10):
             (grabbed, frame) = webcam.read()
             frame = cv2.flip(frame, 1)
 
@@ -53,7 +52,7 @@ while(1):
             var += 1
             count += 10
 
-    if cv2.waitKey(1) & 0xFF ==ord('q'):
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         cv2.destroyAllWindows()
         break
 

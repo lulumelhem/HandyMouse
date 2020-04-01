@@ -1,4 +1,6 @@
 import cv2
+import tensorflow as tf
+from tensorflow import keras
 import imutils          # imutils -> functions to make basic image processing functions
 import numpy as np      # Numpy -> package for scientific computing
 
@@ -49,6 +51,9 @@ def drawContours(image, contours):
 
 if __name__ == "__main__":
 
+    model = keras.models.load_model('hg_trained_model.h5')
+    model.summary()
+
     # region of interest (ROI) coordinates
     # This is the frame of interest
     # top, right, bottom, left = 100, 200, 600, 700
@@ -90,11 +95,16 @@ if __name__ == "__main__":
                 drawContours(frame_copy, contours)
                 cv2.imshow("Thresh", thresh)
 
+                thresh.resize(1, 32, 32, 1, refcheck=False)
+                thresh_test = np.array(thresh, dtype="uint8")
+                # thresh_test = thresh_test/255
+                print(thresh_test.shape)
+                result = model.predict_classes(thresh_test)
+
         cv2.rectangle(frame_copy, (left, top), (right, bottom), (0, 255, 0), 2)
         cv2.imshow("Clone", frame_copy)
 
         num_frames += 1
-
         # observe the keypress by the user
         keypress = cv2.waitKey(1) & 0xFF
 

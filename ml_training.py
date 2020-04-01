@@ -2,8 +2,11 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import datasets, layers, models
-from tensorflow import keras
-import matplotlib.pyplot as plt
+# from keras.models import load_model
+# import keras
+# import matplotlib.pyplot as plt
+# import os
+
 
 def gesture_to_name(ges):
     switcher = {
@@ -17,26 +20,27 @@ def gesture_to_name(ges):
 ges = 1
 count = 0
 
-images_train = []
-labels_train = []
-images_test = []
-labels_test = []
+train_images = []
+train_labels = []
+test_images = []
+test_labels = []
 
+##loading images from disk
 for i in range(0, 400):
 
-    img = cv2.imread("pp_imgs/" + gesture_to_name(ges) + "_" + str(count+1) + ".png")
+    img = cv2.imread("pp_imgs/" + gesture_to_name(ges) + "_" + str(count+1) + ".png", cv2.IMREAD_GRAYSCALE)
     # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # img = cv2.resize(img, (32, 32))
     # resizing the images to 32X32 to make training easier
-    img.resize(32, 32, 3)
+    img.resize(32, 32, 1)
 
     if count % 10 == 0:
-        images_test.append(img)
-        labels_test.append(ges)
+        test_images.append(img)
+        test_labels.append(ges)
 
     else:
-        images_train.append(img)
-        labels_train.append(ges)
+        train_images.append(img)
+        train_labels.append(ges)
 
     if count == 99:
         ges += 1
@@ -47,59 +51,59 @@ for i in range(0, 400):
     if ges == 5:
         break
 
-images_train = np.array(images_train, dtype="uint8")
-labels_train = np.array(labels_train)
-images_test = np.array(images_test, dtype="uint8")
-labels_test = np.array(labels_test)
+## Converting to np arrays
+train_images = np.array(train_images, dtype="uint8")
+train_labels = np.array(train_labels)
+test_images = np.array(test_images, dtype="uint8")
+test_labels = np.array(test_labels)
 
-print("Images loaded: ", len(images_train))
-print("Labels loaded: ", len(labels_train))
-print("Images test: ", len(images_test))
-print("Labels test: ", len(labels_test))
-print ("test: " + str(images_test.shape))
-print ("train: " + str(images_train.shape))
+## Checking the number of images
+print("Images loaded: ", len(train_images))
+print("Labels loaded: ", len(train_labels))
+print("Images test: ", len(test_images))
+print("Labels test: ", len(test_labels))
+print("test: " + str(test_images.shape))
+print("train: " + str(train_images.shape))
 
-images_train, images_test = images_train/255, images_test/255
+train_images, test_images = train_images / 255, test_images / 255
+
+print(train_images.shape)
+print(test_images.shape)
 
 model = models.Sequential()
-model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)))
+model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 1)))
 model.add(layers.MaxPooling2D((2, 2)))
 model.add(layers.Conv2D(64, (3, 3), activation='relu'))
 model.add(layers.MaxPooling2D((2, 2)))
 model.add(layers.Conv2D(64, (3, 3), activation='relu'))
-# model.summary()
 
 model.add(layers.Flatten())
 model.add(layers.Dense(64, activation='relu'))
 model.add(layers.Dense(10))
-model.summary()
 
 model.compile(optimizer='adam',
-              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+              loss="sparse_categorical_crossentropy",
               metrics=['accuracy'])
 
-history = model.fit(images_train, labels_train, epochs=10,
-                    validation_data=(images_test, labels_test))
+model.summary()
 
-# plt.plot(history.history['accuracy'], label='accuracy')
-# plt.plot(history.history['val_accuracy'], label='val_accuracy')
-# plt.xlabel('Epoch')
-# plt.ylabel('Accuracy')
-# plt.ylim([0.5, 1])
-# plt.legend(loc='lower right')
+model.fit(train_images, train_labels, epochs=10)
 
-# test_loss, test_acc = model.evaluate(images_test,  labels_test, verbose=2)
+#Evaluating the model
+test_loss, test_acc = model.evaluate(test_images,  test_labels, verbose=2)
+print(test_acc)
 
-# print(test_acc)
-
-model.reset_metrics()
-predictions = model.predict(images_test)
-
-## Saving the model to disk
+#Saving model to disk
 model.save('hg_trained_model.h5')
 
-new_model = keras.models.load_model('hg_trained_model.h5')
+#Testing model
+model.reset_metrics()
+predictions = model.predict(test_images)
 
-## Checking that the state of the model is preserved
-new_predictions = new_model.predict(images_test)
-test_loss, test_acc = new_model.evaluate(images_test,  labels_test, verbose=2)
+#Testing new loaded model
+new_model = tf.keras.models.load_model('hg_trained_model.h5')
+new_model.summary()
+
+new_predictions = new_model.predict(test_images)
+test_loss, test_acc = new_model.evaluate(test_images, test_labels, verbose=2)
+
